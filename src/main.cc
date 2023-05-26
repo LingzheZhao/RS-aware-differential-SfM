@@ -25,7 +25,7 @@ Created on 29.03.2018
 #include <boost/filesystem.hpp>
 #include <ctime>
 #include <ceres/ceres.h>
-#include <opencv2/imgcodecs/imgcodecs_c.h>
+#include <opencv2/imgcodecs/imgcodecs.hpp>
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/highgui.hpp>
 #include <fstream>
@@ -132,12 +132,12 @@ std::string stringToFormat(const int number);
 // select desired method by uncommenting
 int main() {
     // set constants in function!
-    //evaluateParameterSweep();
+    evaluateParameterSweep();
 
     // set constants in function!
-    //evaluateSingleRun();
+    evaluateSingleRun();
 
-    //testFlow(false);
+    testFlow(false);
     return 0;
 }
 
@@ -385,7 +385,7 @@ void evaluateSingleRun() {
 
     // save flow image
     std::vector<int> compression_params;
-    compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    compression_params.push_back(cv::IMWRITE_PNG_COMPRESSION);
     compression_params.push_back(0);
     cv::Mat flow_image_save = camera.getImageOpticalFlow(flow_image);
     flow_image_save.convertTo(flow_image_save, CV_8UC3, 255.0);
@@ -602,7 +602,7 @@ void testFlow(bool use_deep_flow){
 
     // save figure
 //    std::vector<int> compression_params;
-//    compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+//    compression_params.push_back(cv::IMWRITE_PNG_COMPRESSION);
 //    compression_params.push_back(0);
 //    test_image = abs(gs_image_2-test_image);
 //    cv::imwrite(data_path + "Difference.png", test_image, compression_params);
@@ -626,9 +626,9 @@ Camera setupCameraSynthetic(std::string data_prefix, bool show_messages) {
     std::string path_depth_image_1 = data_prefix + "1_initial_depth.png";
 
 
-    Mat rs_image_1 = cv::imread(path_rs_image_1.c_str(), CV_LOAD_IMAGE_COLOR);
-    Mat gs_image_1 = cv::imread(path_gs_image_1.c_str(), CV_LOAD_IMAGE_COLOR);
-    Mat depth_image_inv_1 = cv::imread(path_depth_image_1.c_str(), CV_LOAD_IMAGE_GRAYSCALE);
+    Mat rs_image_1 = cv::imread(path_rs_image_1.c_str(), cv::IMREAD_COLOR);
+    Mat gs_image_1 = cv::imread(path_gs_image_1.c_str(), cv::IMREAD_COLOR);
+    Mat depth_image_inv_1 = cv::imread(path_depth_image_1.c_str(), cv::IMREAD_GRAYSCALE);
     Mat depth_image_1 = depth_image_inv_1.clone();
 
     // Frame 2
@@ -646,9 +646,9 @@ Camera setupCameraSynthetic(std::string data_prefix, bool show_messages) {
     std::string path_depth_image_2= data_prefix + "2_initial_depth.png";
 
 
-    Mat rs_image_2 = cv::imread(path_rs_image_2.c_str(), CV_LOAD_IMAGE_COLOR);
-    Mat gs_image_2 = cv::imread(path_gs_image_2.c_str(), CV_LOAD_IMAGE_COLOR);
-    Mat depth_image_inv_2 = cv::imread(path_depth_image_2.c_str(), CV_LOAD_IMAGE_GRAYSCALE);
+    Mat rs_image_2 = cv::imread(path_rs_image_2.c_str(), cv::IMREAD_COLOR);
+    Mat gs_image_2 = cv::imread(path_gs_image_2.c_str(), cv::IMREAD_COLOR);
+    Mat depth_image_inv_2 = cv::imread(path_depth_image_2.c_str(), cv::IMREAD_GRAYSCALE);
     Mat depth_image_2 = depth_image_inv_2.clone();
 
     Mat test_image = gs_image_2.clone();
@@ -675,11 +675,11 @@ Camera setupCameraSynthetic(std::string data_prefix, bool show_messages) {
 Camera setupCameraReal(std::string data_prefix, std::string intrinsic_selection) {
     // Frame 1
     std::string path_rs_image_1 = data_prefix + "frame1.png";
-    Mat rs_image_1 = cv::imread(path_rs_image_1.c_str(), CV_LOAD_IMAGE_COLOR);
+    Mat rs_image_1 = cv::imread(path_rs_image_1.c_str(), cv::IMREAD_COLOR);
 
     // Frame 2
     std::string path_rs_image_2= data_prefix + "frame2.png";
-    Mat rs_image_2 = cv::imread(path_rs_image_2.c_str(), CV_LOAD_IMAGE_COLOR);
+    Mat rs_image_2 = cv::imread(path_rs_image_2.c_str(), cv::IMREAD_COLOR);
 
     Camera camera;
     camera.setIntrinsics(intrinsic_selection);

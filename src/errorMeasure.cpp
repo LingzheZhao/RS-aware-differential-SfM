@@ -30,7 +30,7 @@ Created on 07.05.2018
 
 #include <iostream>
 #include <cmath>
-#include <opencv2/imgcodecs/imgcodecs_c.h>
+#include <opencv2/imgcodecs/imgcodecs.hpp>
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/highgui.hpp>
 #include "Eigen/Dense"
@@ -211,7 +211,7 @@ namespace error_measure {
 
             // output image
             std::vector<int> compression_params;
-            compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+            compression_params.push_back(cv::IMWRITE_PNG_COMPRESSION);
             compression_params.push_back(0);
             cv::imwrite(image_path + std::to_string(eval_num) + ".png", depth_est, compression_params);
 
