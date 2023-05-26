@@ -131,6 +131,7 @@ std::string stringToFormat(const int number);
 
 // select desired method by uncommenting
 int main() {
+    omp_set_num_threads(64);
     // set constants in function!
     evaluateParameterSweep();
 

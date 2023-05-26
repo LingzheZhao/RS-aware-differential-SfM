@@ -221,6 +221,7 @@ cv::Mat_<cv::Point_<double>> Camera::calculateTrueFlow(const int frameNr1, const
     Eigen::Vector2d image_coordinates_f1;
     Eigen::Vector2d image_coordinates_f2;
 
+    #pragma omp parallel for
     for (int v = 0; v < rows; ++v) {
         for (int u = 0; u < cols; ++u) {
 
@@ -310,6 +311,7 @@ cv::Mat Camera::getImageOpticalFlow(cv::Mat_<cv::Point_<double>> flow) {
 
 // representing flow by adding arrows onto the first frame
 cv::Mat Camera::flowArrows(const cv::Mat image, const cv::Mat_<cv::Point_<double>> flow, const int delta_x, const int delta_y) {
+    #pragma omp parallel for
     for (int y = 0; y < image.rows; y+=delta_y) {
         for (int x = 0; x < image.cols; x+=delta_x) {
             // get flow
@@ -382,6 +384,7 @@ void Camera::testProjection() {
 
     Eigen::Vector2d image_coordinates1;
     Eigen::Vector2d image_coordinates2;
+    #pragma omp parallel for
     for (int x=0; x<frame.getCols(); ++x) {
         for (int y=0; y<frame.getRows(); ++y) {
 
@@ -445,6 +448,7 @@ void Camera::createPointCloud(const int frameNr, const std::string fileName) {
     // extract wanted area
     cv::Mat_<cv::Vec3f> coordinates_reduced(rows-dy_start-dy_end, cols-dx_start-dx_end);
     cv::Mat_<cv::Vec3b> colors_reduced(rows-dy_start-dy_end, cols-dx_start-dx_end);
+    #pragma omp parallel for
     for (int x=dx_start; x<cols-dx_end; ++x) {
         for (int y=dy_start; y<rows-dy_end; ++y) {
             coordinates_reduced.at<cv::Vec3f>(y-dy_start,x-dx_start) = coordinates.at<cv::Vec3f>(y,x);
@@ -474,6 +478,7 @@ void Camera::createPointCloud(const int frameNr, const std::string fileName) {
 
 
     // create output
+    #pragma omp parallel for
     for (int i=0; i<number_iterations;  i+=3) {
         // loop through the coordinates
         for (unsigned int j = 0; j<3; j++) {
@@ -520,6 +525,7 @@ cv::Mat Camera::createErrorImage(const int frameNr, const double max_norm) {
     frame.relocatePose();
 
     int number_outliers = 0;
+    #pragma omp parallel for
     for (int x=0; x<cols; ++x) {
         for (int y=0; y<rows; ++y) {
             double true_z = real_depth_map(y,x);
@@ -560,6 +566,7 @@ cv::Mat Camera::createErrorImage(const int frameNr, const double max_norm) {
     // calculate mean scale while only using the inliers
     double sum=0;
     int inliers=0;
+    #pragma omp parallel for
     for (int i = 0; i<3*cols*rows; ++i) {
         if (scales(i) != 0 && scales(i) == scales(i)) {
             inliers++;
@@ -570,6 +577,7 @@ cv::Mat Camera::createErrorImage(const int frameNr, const double max_norm) {
     std::cout << "mean scale: " << scales.mean() << std::endl;
 
     // write Euclidean error as pixel value
+    #pragma omp parallel for
     for (int x=0; x<cols; ++x) {
         for (int y=0; y<rows; ++y) {
 
@@ -610,6 +618,7 @@ double Camera::meanReprojectionError(const int frameNr) {
     frame.relocatePose();
 
     int number_outliers = 0;
+    #pragma omp parallel for
     for (int x=0; x<cols; ++x) {
         for (int y=0; y<rows; ++y) {
             double true_z = real_depth_map(y,x);
@@ -650,6 +659,7 @@ double Camera::meanReprojectionError(const int frameNr) {
     // calculate mean scale while only using the inliers
     double sum=0;
     int inliers=0;
+    #pragma omp parallel for
     for (int i = 0; i<3*cols*rows; ++i) {
         if (scales(i) != 0 && scales(i) == scales(i)) {
             inliers++;
@@ -663,6 +673,7 @@ double Camera::meanReprojectionError(const int frameNr) {
     // add all Euclidian errors up
     double sum_error = 0;
     inliers = 0;
+    #pragma omp parallel for
     for (int x=0; x<cols; ++x) {
         for (int y=0; y<rows; ++y) {
 
@@ -757,6 +768,7 @@ cv::Mat Camera::interpolateCrackyImage(cv::Mat image_in, const unsigned offset) 
     const unsigned black_threshold = 15;
 
     // iterate over image expect outer-most pixels
+    #pragma omp parallel for
     for (int row = offset; row < image_in.rows-offset; row++) {
         for (int col = offset; col < image_in.cols-offset; col++) {
             const auto point_of_interest = image_in.at<cv::Vec3b>(row, col);
@@ -778,6 +790,7 @@ cv::Mat Camera::shiftChannelBGR(cv::Mat image_in, double shift_blue, double shif
     cv::Mat shifted = image_in.clone()*0;
 
     // iterate over entire image
+    #pragma omp parallel for
     for (int row = 0; row < image_in.rows; row++) {
         for(int col = 0; col < image_in.cols; col++) {
             cv::Vec3b point = image_in.at<cv::Vec3b>(row, col);
@@ -821,6 +834,7 @@ cv::Mat Camera::createOverlayImage(cv::Mat original_image, cv::Mat shift_image) 
     cv::Mat image_out = original_image.clone()*0;
 
     // iterate over entire image
+    #pragma omp parallel for
     for (int row = 0; row < original_image.rows; row++) {
         for(int col = 0; col < original_image.cols; col++) {
             cv::Vec3b point_shift = shift_image.at<cv::Vec3b>(row, col);
@@ -845,6 +859,7 @@ cv::Mat Camera::reconstructImageFromFlow(cv::Mat_<cv::Point_<double>> flow_image
     reconstructed_image.setTo(cv::Scalar(0, 0, 0));
 
     // iterate over entire image
+    #pragma omp parallel for
     for(int u = 0; u < flow_image.cols; ++u) {
         for (int v = 0; v < flow_image.rows; ++v) {
             cv::Point_<double> flow_in_point = flow_image.at<cv::Point_<double>>(v, u);
