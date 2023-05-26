@@ -28,7 +28,9 @@ Created on 27.04.2018
 #include "scanline.h"
 #include <Eigen/Geometry>
 #include <opencv2/core.hpp>
+#include <filesystem>
 
+namespace fs = std::filesystem;
 
 class RsFrame {
 public:
@@ -71,8 +73,8 @@ public:
      * @param csv_unprojection_z (std::sting) path to the csv file storing the unprojection map for the z coordinates
      * @return (bool) indicator if extracting and storing of the unprojection maps succeeded.
      */
-    bool setUnprojectionMapRs(const std::string csv_unprojection_x, const std::string csv_unprojection_y,
-                              const std::string csv_unprojection_z);
+    bool setUnprojectionMapRs(const fs::path& csv_unprojection_x, const fs::path& csv_unprojection_y,
+                              const fs::path& csv_unprojection_z);
 
     /**
      * Method to add the unprojection maps for the x, y, and z coordinate. The unprojection map represents the world
@@ -83,16 +85,16 @@ public:
      * @param csv_unprojection_z (std::sting) path to the csv file storing the unprojection map for the z coordinates
      * @return (bool) indicator if extracting and storing of the unprojection maps succeeded.
      */
-    bool setUnprojectionMapGs(const std::string csv_unprojection_x, const std::string csv_unprojection_y,
-                              const std::string csv_unprojection_z);
+    bool setUnprojectionMapGs(const fs::path& csv_unprojection_x, const fs::path& csv_unprojection_y,
+                              const fs::path& csv_unprojection_z);
     /**
      * Method to add the poses and orientations of the camera for each scanline in the rolling shutter image.
      *
-     * @param poses_csv (std::string) path to the csv file storing the poses of each scanline.
-     * @param orientation_csv (std::string) path to the csv file storing the orientation of each scanline.
+     * @param poses_csv (const fs::path&) path to the csv file storing the poses of each scanline.
+     * @param orientation_csv (const fs::path&) path to the csv file storing the orientation of each scanline.
      * @return (bool) indicator if the extracting and storing of the poses and orientations succeeded.
      */
-    bool setPoses(std::string csv_poses, std::string csv_orientation);
+    bool setPoses(const fs::path& csv_poses, const fs::path& csv_orientation);
 
    /**
     * Method to add the intrinsic matrix of the camera.

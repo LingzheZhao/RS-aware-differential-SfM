@@ -28,6 +28,9 @@ Created on 29.03.2018
 #include "rsframe.h"
 #include <Eigen/Geometry>
 #include <opencv2/core.hpp>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 
 class Camera {
@@ -60,9 +63,9 @@ public:
      * @param csv_unprojection_y (std::sting) path to the csv file storing the unprojection map for the y coordinates
      * @param csv_unprojection_z (std::sting) path to the csv file storing the unprojection map for the z coordinates
      */
-    void addFrameSynthetic(cv::Mat rs_image, cv::Mat gs_image, cv::Mat depth_image, const std::string poses_csv,
-                           const std::string orientation_csv, const std::string csv_unprojection_x,
-                           const std::string csv_unprojection_y, const std::string csv_unprojection_z);
+    void addFrameSynthetic(cv::Mat rs_image, cv::Mat gs_image, cv::Mat depth_image, const fs::path& poses_csv,
+                           const fs::path& orientation_csv, const fs::path& csv_unprojection_x,
+                           const fs::path& csv_unprojection_y, const fs::path& csv_unprojection_z);
 
     /**
      * Method to add an RS frame to the camera object. The RS frame contains several scanlines with their own pose and
@@ -83,18 +86,18 @@ public:
      * @param csv_unprojection_z_gs (std::sting) path to the csv file storing the unprojection map of the GS image
      *        for the z coordinates
      */
-    void addFrameSynthetic(cv::Mat rs_image, cv::Mat gs_image, cv::Mat depth_image, const std::string poses_csv,
-                           const std::string orientation_csv, const std::string csv_unproject_x,
-                           const std::string csv_unproject_y, const std::string csv_unproject_z,
-                           const std::string csv_gs_unproject_x, const std::string csv_gs_unproject_y,
-                           const std::string csv_gs_unproject_z);
+    void addFrameSynthetic(cv::Mat rs_image, cv::Mat gs_image, cv::Mat depth_image, const fs::path& poses_csv,
+                           const fs::path& orientation_csv, const fs::path& csv_unproject_x,
+                           const fs::path& csv_unproject_y, const fs::path& csv_unproject_z,
+                           const fs::path& csv_gs_unproject_x, const fs::path& csv_gs_unproject_y,
+                           const fs::path& csv_gs_unproject_z);
 
     /**
      * Method to add the intrinsic matrix of the camera.
      *
      * @param source_camera (std::string) string containing the type of camera with which the images were taken.
      */
-    void setIntrinsics(const std::string source_camera);
+    void setIntrinsics(std::string_view source_camera);
 
    /**
     * Method to add the intrinsic matrix of the camera from a csv file.
@@ -102,7 +105,7 @@ public:
     * @param csv_intrinsic_matrix (std::string) containing the path to the csv file containing the intrinsic matrix.
     * @param show_messages (bool) true if debug messages should be printed
     */
-    bool loadIntrinsicsFromFile(const std::string csv_intrinsic_matrix, bool show_messages);
+    bool loadIntrinsicsFromFile(const fs::path& csv_intrinsic_matrix, bool show_messages);
 
     /**
      * Method to calculate the flow in means of pixel displacement between two given RS frames. This method only works
@@ -210,7 +213,7 @@ public:
      * @param frameNr (int) number of RS frame <= number of added frames.
      * @param fileName (String) containing the output file name and path.
      */
-    void createPointCloud(const int frameNr, const std::string fileName);
+    void createPointCloud(const int frameNr, const fs::path& fileName);
 
     /**
      * Method which creates an error image representing the reprojection error between ground truth 3D point in world

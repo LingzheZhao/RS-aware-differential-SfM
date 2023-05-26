@@ -1,7 +1,8 @@
-src/cmake-build-debug
-src/cmake-build-release
-src/build
-src/.idea
-
+/src/cmake-build-debug
+/src/cmake-build-release
+/src/build
+/src/.idea
+/build/
+/.vscode/
 /examples/*
 !examples/README.md

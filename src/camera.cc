@@ -46,9 +46,9 @@ void Camera::addFrameReal(cv::Mat rs_image) {
 }
 
 // add frame from synthetic data (RS and GS image, depth_map, unprojection map and correct poses)
-void Camera::addFrameSynthetic(cv::Mat rs_image, cv::Mat gs_image, cv::Mat depth_image, const std::string poses_csv,
-                               const std::string orientation_csv, const std::string csv_unproject_x,
-                               const std::string csv_unproject_y, const std::string csv_unproject_z) {
+void Camera::addFrameSynthetic(cv::Mat rs_image, cv::Mat gs_image, cv::Mat depth_image, const fs::path& poses_csv,
+                               const fs::path& orientation_csv, const fs::path& csv_unproject_x,
+                               const fs::path& csv_unproject_y, const fs::path& csv_unproject_z) {
     RsFrame frame;
     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> depth_map;
     cv::cv2eigen(depth_image, depth_map);
@@ -70,11 +70,11 @@ void Camera::addFrameSynthetic(cv::Mat rs_image, cv::Mat gs_image, cv::Mat depth
 
 // add frame from synthetic data (RS and GS image, depth_map, unprojection map and correct poses)
 // additional add the unprojection maps for the GS images (used for testing)
-void Camera::addFrameSynthetic(cv::Mat rs_image, cv::Mat gs_image, cv::Mat depth_image, const std::string poses_csv,
-                               const std::string orientation_csv, const std::string csv_unproject_x,
-                               const std::string csv_unproject_y, const std::string csv_unproject_z,
-                               const std::string csv_gs_unproject_x, const std::string csv_gs_unproject_y,
-                               const std::string csv_gs_unproject_z) {
+void Camera::addFrameSynthetic(cv::Mat rs_image, cv::Mat gs_image, cv::Mat depth_image, const fs::path& poses_csv,
+                               const fs::path& orientation_csv, const fs::path& csv_unproject_x,
+                               const fs::path& csv_unproject_y, const fs::path& csv_unproject_z,
+                               const fs::path& csv_gs_unproject_x, const fs::path& csv_gs_unproject_y,
+                               const fs::path& csv_gs_unproject_z) {
     RsFrame frame;
     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> depth_map;
     cv::cv2eigen(depth_image, depth_map);
@@ -96,7 +96,7 @@ void Camera::addFrameSynthetic(cv::Mat rs_image, cv::Mat gs_image, cv::Mat depth
 }
 
 // set camera intrinsics for synthetic data (use provided file)
-bool Camera::loadIntrinsicsFromFile(const std::string csv_intrinsic_matrix, bool show_messages) {
+bool Camera::loadIntrinsicsFromFile(const fs::path& csv_intrinsic_matrix, bool show_messages) {
     bool return_value = true;
     bool files_correct = true;
     bool nr_lines_correct = true;
@@ -176,7 +176,7 @@ bool Camera::loadIntrinsicsFromFile(const std::string csv_intrinsic_matrix, bool
 }
 
 // set intrinsics for real world data
-void Camera::setIntrinsics(const std::string source_camera) {
+void Camera::setIntrinsics(std::string_view source_camera) {
     Eigen::Matrix3d intrinsics;
     if (source_camera == "iphone") { // IP 4 (RS dataset)
         intrinsics << 1505.1283359786307, 0, 657.81734686405991,
@@ -189,6 +189,18 @@ void Camera::setIntrinsics(const std::string source_camera) {
     } else if (source_camera == "galaxy") { // S8 full HD with video stabilization
         intrinsics << 1492.41306997746, 0, 949.571146410704,
                 0, 1491.09286590722, 554.675409391795,
+                0, 0, 1;
+    } else if (source_camera == "Unreal") {
+        intrinsics << 548.409, 0, 384,
+                0, 548.409, 240,
+                0, 0, 1;
+    } else if (source_camera == "Blender") {
+        intrinsics << 693.5682971624287, 0, 384,
+                0, 693.5682971624287, 240,
+                0, 0, 1;
+    } else if (source_camera == "galaxy_270") {
+        intrinsics << 373.103267494, 0, 237.392786603,
+                0, 372.773216477, 138.668852348,
                 0, 0, 1;
     } else if (source_camera == "galaxy_old") { // first clips
         intrinsics << 3154.53208221173, 0, 1969.87107268891,
@@ -423,7 +435,7 @@ Eigen::MatrixXd Camera::getGroundTruthDepthMap(const int frameNr) {
 }
 
 // create point cloud of the 3D points in world coordinate system
-void Camera::createPointCloud(const int frameNr, const std::string fileName) {
+void Camera::createPointCloud(const int frameNr, const fs::path& fileName) {
 
     RsFrame frame = frames_[frameNr-1];
     cv::Mat coordinates = frame.get3dCoordinates();

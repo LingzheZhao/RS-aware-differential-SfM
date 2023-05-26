@@ -55,8 +55,8 @@ void RsFrame::setGsImage(cv::Mat image) {
 }
 
 // add RS unprojection map (corresponding 3D coordinate for a pixel in RS image)
-bool RsFrame::setUnprojectionMapRs(const std::string csv_unprojection_x, const std::string csv_unprojection_y,
-                                   const std::string csv_unprojection_z) {
+bool RsFrame::setUnprojectionMapRs(const fs::path& csv_unprojection_x, const fs::path& csv_unprojection_y,
+                                   const fs::path& csv_unprojection_z) {
     bool return_value = true;
     bool files_correct = true;
     bool nr_scanlines_correct = true;
@@ -219,8 +219,8 @@ bool RsFrame::setUnprojectionMapRs(const std::string csv_unprojection_x, const s
 
 
 // add GS unprojection map (corresponding 3D coordinate for a pixel in GS image) (for testing used)
-bool RsFrame::setUnprojectionMapGs(const std::string csv_unprojection_x, const std::string csv_unprojection_y,
-                                   const std::string csv_unprojection_z) {
+bool RsFrame::setUnprojectionMapGs(const fs::path& csv_unprojection_x, const fs::path& csv_unprojection_y,
+                                   const fs::path& csv_unprojection_z) {
     bool return_value = true;
     bool files_correct = true;
     bool nr_scanlines_correct = true;
@@ -441,7 +441,7 @@ unsigned long RsFrame::getNrScannlines() const {
 }
 
 // set poses for each scanline of the RS image using synthetic data
-bool RsFrame::setPoses(std::string csv_poses, std::string csv_orientation) {
+bool RsFrame::setPoses(const fs::path& csv_poses, const fs::path& csv_orientation) {
     bool return_value = true;
     bool files_correct = true;
     bool nr_scanlines_correct = true;

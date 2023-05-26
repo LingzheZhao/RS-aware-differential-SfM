@@ -22,7 +22,7 @@ Created on 29.03.2018
 
 */
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <ctime>
 #include <ceres/ceres.h>
 #include <opencv2/imgcodecs/imgcodecs.hpp>
@@ -56,6 +56,8 @@ using std::cout;
 using std::cin;
 using std::endl;
 
+namespace fs = std::filesystem;
+
 // Method declaration
 // ------------------------------------------------------------------------------------------------------------------
 /**
@@ -76,7 +78,7 @@ void evaluateParameterSweep();
  * Some examples are included in the Git repository. To run them uncomment the desired one. The required data have to
  * be extracted beforehand!
  */
-void evaluateSingleRun();
+void evaluateSingleRun(std::string_view path_to_sequence, std::string_view dataset_name);
 
 
 /**
@@ -95,11 +97,11 @@ void testFlow(bool use_deep_flow);
  * Adds frame from synthetic data (RS and GS image, depth_map, unprojection map and correct poses)
  * additional adds the unprojection maps for the GS images (used for testing)
  *
- * @param data_prefix (string) path to location of the data
+ * @param data_prefix (const fs::path&) path to location of the data
  * @param show_messages (bool) indicating if information text should be displayed
  * @return initialized Camera object
  */
-Camera setupCameraSynthetic(std::string data_prefix, bool show_messages);
+Camera setupCameraSynthetic(const fs::path& data_prefix, bool show_messages);
 
 
 /**
@@ -107,11 +109,11 @@ Camera setupCameraSynthetic(std::string data_prefix, bool show_messages);
  *
  * Adds the two RS frames and the camera intrinsic
  *
- * @param data_prefix (string) path to location of the data
+ * @param data_prefix (const fs::path&) path to location of the data
  * @param intrinsic_selection (string) selecting the camera intinsic (see Camera.cc file)
  * @return initialized Camera object
  */
-Camera setupCameraReal(std::string data_prefix, std::string intrinsic_selection);
+Camera setupCameraReal(const fs::path& data_prefix, std::string_view intrinsic_selection);
 
 /**
  * Method that returns the current date and time as string
@@ -130,13 +132,13 @@ std::string getDateString();
 std::string stringToFormat(const int number);
 
 // select desired method by uncommenting
-int main() {
+int main(int argc, const char* argv[]) {
     omp_set_num_threads(64);
     // set constants in function!
     evaluateParameterSweep();
 
-    // set constants in function!
-    evaluateSingleRun();
+    // set constants in function! (path_to_sequence, dataset_name)
+    evaluateSingleRun(argv[1], argv[2]);
 
     testFlow(false);
     return 0;
@@ -171,14 +173,14 @@ void evaluateParameterSweep() {
     const bool OPTIMIZE_RESULTS = false; // true if the nonlinear refinement should be used. If false it is skipped.
     const bool SHOW_MSG = true; // reduces the numer of messages that are printed
 
-    const std::string PATH = "../../examples/synthetic/example_sweep/";
+    const fs::path PATH = "../../examples/synthetic/example_sweep/";
     const std::string date_time = getDateString();
-    const std::string PATH_RESULTS = PATH + "results/" + date_time + "/";
-    boost::filesystem::create_directories(PATH_RESULTS);
+    const fs::path PATH_RESULTS = PATH / "results" / date_time;
+    std::filesystem::create_directories(PATH_RESULTS);
 
     // save config file
     std::ofstream file_config;
-    file_config.open(PATH_RESULTS+"configuration");
+    file_config.open(PATH_RESULTS / "configuration");
     file_config << "ransac trials: " << RANSAC_TRIALS << endl;
     file_config << "evaluation runs: " << NUM_EVALUATIONS << endl;
     file_config << "use deep flow: " << USE_DEEP_FLOW << endl;
@@ -190,25 +192,25 @@ void evaluateParameterSweep() {
 
     // initialize ofstream files in new folder
     std::ofstream file_errors_out;
-    file_errors_out.open(PATH_RESULTS+"errors.csv");
+    file_errors_out.open(PATH_RESULTS / "errors.csv");
     file_errors_out << "task,error_w,error_v,reproject_error" << std::endl;
     std::ofstream file_w_out;
-    file_w_out.open(PATH_RESULTS+"w.csv");
+    file_w_out.open(PATH_RESULTS / "w.csv");
     std::ofstream file_v_out;
-    file_v_out.open(PATH_RESULTS+"v.csv");
+    file_v_out.open(PATH_RESULTS / "v.csv");
     std::ofstream file_k_out;
-    file_k_out.open(PATH_RESULTS+"k.csv");
+    file_k_out.open(PATH_RESULTS / "k.csv");
     std::ofstream file_reproject_error_out;
-    file_reproject_error_out.open(PATH_RESULTS+"reproject_errors.csv");
+    file_reproject_error_out.open(PATH_RESULTS / "reproject_errors.csv");
     std::ofstream file_v_error_out;
-    file_v_error_out.open(PATH_RESULTS+"error_v.csv");
+    file_v_error_out.open(PATH_RESULTS / "error_v.csv");
     std::ofstream file_w_error_out;
-    file_w_error_out.open(PATH_RESULTS+"error_w.csv");
+    file_w_error_out.open(PATH_RESULTS / "error_w.csv");
 
 
     // initialize constants
     // load tasks
-    std::ifstream file_task_in (PATH + "tasks.txt");
+    std::ifstream file_task_in (PATH / "tasks.txt");
     std::vector<std::string> tasks;
     std::string task;
     while(std::getline(file_task_in, task)) {
@@ -228,14 +230,14 @@ void evaluateParameterSweep() {
         // 1. line: v, 2: w, 3: gamma, 4: k
         std::string csv_line;
         // read v from the stream
-        std::ifstream file_v_in (PATH + tasks[i] + "/v.csv");
+        std::ifstream file_v_in (PATH / tasks[i] / "v.csv");
         for (int j = 0; j < 3; j++) {
             std::getline(file_v_in, csv_line, ',');
             std::stringstream stream_v(csv_line);
             stream_v >> v[j];
         }
         std::cout << "v: " << v[0] << ", " << v[1] << ", " << v[2] << std::endl;
-        std::ifstream file_w_in (PATH + tasks[i] + "/w.csv");
+        std::ifstream file_w_in (PATH / tasks[i] / "w.csv");
         // read w from the stream
         for (int j = 0; j < 3; j++) {
             std::getline(file_w_in, csv_line, ',');
@@ -245,13 +247,13 @@ void evaluateParameterSweep() {
         std::cout << "w: " << w[0] << ", " << w[1] << ", " << w[2] << std::endl;
         error_measure::TrueValues true_values(Eigen::Vector3d(w[0], w[1], w[2]), Eigen::Vector3d(v[0], v[1], v[2]));
         // read gamma from the stream
-        std::ifstream file_gamma_in (PATH + tasks[i] + "/gamma.csv");
+        std::ifstream file_gamma_in (PATH / tasks[i] / "gamma.csv");
         std::getline(file_gamma_in, csv_line, ',');
         std::stringstream stream_gamma(csv_line);
         stream_gamma >> gamma;
         std::cout << "gamma: " << gamma << std::endl;
         // read k from the stream
-        std::ifstream file_k_in (PATH + tasks[i] + "/k.csv");
+        std::ifstream file_k_in (PATH / tasks[i] / "k.csv");
         std::getline(file_k_in, csv_line, ',');
         std::stringstream stream_k(csv_line);
         stream_k >> k;
@@ -260,13 +262,13 @@ void evaluateParameterSweep() {
         // setup camera
         std::streambuf* orig_buf = std::cout.rdbuf();
         std::cout.rdbuf(NULL);
-        Camera camera = setupCameraSynthetic(PATH + tasks[i] + "/images/", SHOW_MSG);
+        Camera camera = setupCameraSynthetic(PATH / tasks[i] / "images", SHOW_MSG);
         camera.setGamma(gamma);
         cout.rdbuf(orig_buf);
 
 
-        std::string image_path = PATH_RESULTS + "/depthMaps/" + std::to_string(i) + "/";
-        boost::filesystem::create_directories(image_path);
+        std::string image_path = PATH_RESULTS / "depthMaps" / std::to_string(i);
+        std::filesystem::create_directories(image_path);
 
         // run evaluation
         error_measure::VelocityErrors errors = error_measure::evaluateVelocities(camera, true_values, gamma, RANSAC_TRIALS,
@@ -300,14 +302,14 @@ void evaluateParameterSweep() {
 }
 
 // evaluate algorithm for two consecutive frames
-void evaluateSingleRun() {
+void evaluateSingleRun(std::string_view path_to_sequence, std::string_view dataset_name) {
     // set desired parameters and here
     const int ransac_trials = 5; // number of RANSAC trials used
     const bool use_global_shutter_mode = false; // true if global shutter assumption should be used (This overrides use_const_acleration_mode)
     const bool use_acceleration_mode = false; // true if const acceleration assumption should be used instead of constant velocity
     const bool use_refinement = true; // true if the nonlinear refinement should be used
     bool use_deep_flow = false; // true if Deep Flow should be used instead of Ground Truth Flow
-    const bool use_synthetic_data = true; // true if synthetic data is used (might override used flow method)
+    const bool use_synthetic_data = false; // true if synthetic data is used (might override used flow method)
     const double ransac_tol = 0.05;  // RANSAC threshold
     const double flow_threshold = 1e-10; // flow threshold values below are set to zero
 
@@ -317,50 +319,59 @@ void evaluateSingleRun() {
     // Synthetic data
     // -----------------------------------------------
     // Example 1:
-    std::string data_path = "../../examples/synthetic/example1/";
-    Camera camera = setupCameraSynthetic(data_path+"test__v=[0.03;0.03;0]_w=[0;0;0.5]_k=0_gamma=0.8/images/",true);
-    double gamma = 0.8;
-    // Example 2:
-//    std::string data_path = "../../examples/synthetic/example2/";
-//    Camera camera = setupCameraSynthetic(data_path+"test__v=[0.01;0.01;0]_w=[0;0;0.5]_k=0_gamma=0.8/images/",true);
+//    fs::path data_path = "../../examples/synthetic/example1/";
+//    Camera camera = setupCameraSynthetic(data_path / "test__v=[0.03;0.03;0]_w=[0;0;0.5]_k=0_gamma=0.8" / "images", true);
 //    double gamma = 0.8;
+    // Example 2:
+//      fs::path data_path = "../../examples/synthetic/example2/";
+//      Camera camera = setupCameraSynthetic(data_path / "test__v=[0.01;0.01;0]_w=[0;0;0.5]_k=0_gamma=0.8" / "images", true);
+//      double gamma = 0.8;
     // Example 3:
-//    std::string data_path = "../../examples/synthetic/example3/";
-//    Camera camera = setupCameraSynthetic(data_path+"test__v=[0.07;0.07;0]_w=[0;0;0.5]_k=0_gamma=0.8/images/",true);
+//    fs::path data_path = "../../examples/synthetic/example3/";
+//    Camera camera = setupCameraSynthetic(data_path / "test__v=[0.07;0.07;0]_w=[0;0;0.5]_k=0_gamma=0.8" / "images", true);
 //    double gamma = 0.8;
     // Example 4:
-//    std::string data_path = "../../examples/synthetic/example4/";
-//    Camera camera = setupCameraSynthetic(data_path+"test__v=[0.03;0.03;0]_w=[0;0;0]_k=0_gamma=0.8/images/",true);
+//    fs::path data_path = "../../examples/synthetic/example4/";
+//    Camera camera = setupCameraSynthetic(data_path / "test__v=[0.03;0.03;0]_w=[0;0;0]_k=0_gamma=0.8" / "images", true);
 //    double gamma = 0.8;
     // Example 5:
-//    std::string data_path = "../../examples/synthetic/example5/";
-//    Camera camera = setupCameraSynthetic(data_path+"test__v=[0.03;0.03;0]_w=[0;0;2]_k=0_gamma=0.8/images/",true);
+//    fs::path data_path = "../../examples/synthetic/example5/";
+//    Camera camera = setupCameraSynthetic(data_path / "test__v=[0.03;0.03;0]_w=[0;0;2]_k=0_gamma=0.8" / "images", true);
 //    double gamma = 0.8;
 
     // -----------------------------------------------
     // Real world data
     // -----------------------------------------------
     // Example 1:
-//    std::string data_path = "../../examples/real_world/example1/";
+//    fs::path data_path = "../../examples/real_world/example1/";
 //    Camera camera = setupCameraReal(data_path, "galaxy_stabil");
 //    double gamma = 0.95;
     // Example 2:
-//    std::string data_path = "../../examples/real_world/example2/";
+//    fs::path data_path = "../../examples/real_world/example2/";
 //    Camera camera = setupCameraReal(data_path, "galaxy");
 //    double gamma = 0.95;
     // Example 3:
-//    std::string data_path = "../../examples/real_world/example3/";
+//    fs::path data_path = "../../examples/real_world/example3/";
 //    Camera camera = setupCameraReal(data_path, "galaxy");
 //    double gamma = 0.95;
     // Example 4:
-//    std::string data_path = "../../examples/real_world/example4/";
+//    fs::path data_path = "../../examples/real_world/example4/";
 //    Camera camera = setupCameraReal(data_path, "galaxy_stabil");
 //    double gamma = 0.95;
     // Example 5:
-//    std::string data_path = "../../examples/real_world/example5/";
+//    fs::path data_path = "../../examples/real_world/example5/";
 //    Camera camera = setupCameraReal(data_path, "galaxy");
 //    double gamma = 0.95;
+    // Unreal Dataset:
+//   fs::path data_path = "../../examples/Unreal/Adornment/seq_000/";
+//   Camera camera = setupCameraReal(data_path, "Unreal");
+//    double gamma = 0.95;
 
+    // Configure from stdin
+    fs::path data_path = path_to_sequence;
+    assert(!data_path.empty());
+    Camera camera = setupCameraReal(data_path, dataset_name);
+    double gamma = 0.95;
 
     camera.setGamma(gamma);
     // ensure that for real world images deep flow is used
@@ -390,9 +401,9 @@ void evaluateSingleRun() {
     compression_params.push_back(0);
     cv::Mat flow_image_save = camera.getImageOpticalFlow(flow_image);
     flow_image_save.convertTo(flow_image_save, CV_8UC3, 255.0);
-    cv::imwrite(data_path + "optical_flow.png", flow_image_save, compression_params);
+    cv::imwrite(data_path / "optical_flow.png", flow_image_save, compression_params);
     cv::Mat flow_image_arrow = camera.flowArrows(camera.getFrame(1).getRsImage().clone(), flow_image, 50, 50);
-    cv::imwrite(data_path + "optical_flow_arrow.png", flow_image_arrow, compression_params);
+    cv::imwrite(data_path / "optical_flow_arrow.png", flow_image_arrow, compression_params);
 
 
 
@@ -524,35 +535,35 @@ void evaluateSingleRun() {
     Mat backprojection = camera.interpolateCrackyImage(camera.getFrame(1).getGsImage(), 1);
 
     // save point cloud
-    camera.createPointCloud(1, data_path + "point_cloud.ply");
+    camera.createPointCloud(1, data_path / "point_cloud.ply");
 
     // save depth image, RS image and backprojection
-    cv::imwrite(data_path + "MinimalDepth.png", depth_est, compression_params);
-    cv::imwrite(data_path + "rs_image.png", camera.getFrame(1).getRsImage().clone(), compression_params);
-    cv::imwrite(data_path + "backprojection.png", backprojection, compression_params);
+    cv::imwrite(data_path / "MinimalDepth.png", depth_est, compression_params);
+    cv::imwrite(data_path / "rs_image.png", camera.getFrame(1).getRsImage().clone(), compression_params);
+    cv::imwrite(data_path / "backprojection.png", backprojection, compression_params);
 
     // save additional images for evaluation (only possible with synthetic data!)
     if (use_synthetic_data) {
         // store GS image
-        cv::imwrite(data_path + "gs_image.png", original_gs, compression_params);
+        cv::imwrite(data_path / "gs_image.png", original_gs, compression_params);
 
         // reprojection error image (Euclidean distance between estimate and ground truth)
         cv::Mat error_image = camera.createErrorImage(1, 10.0);
-        cv::imwrite(data_path + "error_image.png", error_image, compression_params);
+        cv::imwrite(data_path / "error_image.png", error_image, compression_params);
 
         cv::Mat difference = abs(backprojection-original_gs);
-        cv::imwrite(data_path + "difference.png", difference, compression_params);
+        cv::imwrite(data_path / "difference.png", difference, compression_params);
         cv::Mat remainder = abs(original_gs-difference);
-        cv::imwrite(data_path + "remainder.png", remainder, compression_params);
+        cv::imwrite(data_path / "remainder.png", remainder, compression_params);
 
         cv::Mat warp_shift = abs(original_rs-original_gs);
         cv::Mat warp_overlay = camera.createOverlayImage(camera.shiftChannelBGR(original_gs, 1, 1, 1),
                                                          camera.shiftChannelBGR(warp_shift, 2, 0.5, 0.5));
-        cv::imwrite(data_path + "overlay_gs_rs.png", warp_overlay, compression_params);
+        cv::imwrite(data_path / "overlay_gs_rs.png", warp_overlay, compression_params);
 
         cv::Mat overlay_gs_bp = camera.createOverlayImage(camera.shiftChannelBGR(original_gs, 1, 1, 1),
                                                           camera.shiftChannelBGR(abs(backprojection-original_gs), 2, 0.5, 0.5));
-        cv::imwrite(data_path + "overlay_gs_bp.png", overlay_gs_bp, compression_params);
+        cv::imwrite(data_path / "overlay_gs_bp.png", overlay_gs_bp, compression_params);
 
         // calculate mean reprojection error
         cout << "Euclidean error: " << camera.meanReprojectionError(1) << endl;
@@ -562,8 +573,8 @@ void evaluateSingleRun() {
 
 // Test flow calculation by adding flow to first RS image and compare the result with the second RS image
 void testFlow(bool use_deep_flow){
-    std::string data_path = "../../examples/synthetic/example4/";
-    Camera camera = setupCameraSynthetic(data_path+"test__v=[0.03;0.03;0]_w=[0;0;0]_k=0_gamma=0.8/images/",true);
+    fs::path data_path = "../../examples/synthetic/example4/";
+    Camera camera = setupCameraSynthetic(data_path / "test__v=[0.03;0.03;0]_w=[0;0;0]_k=0_gamma=0.8" / "images", true);
 
     Mat gs_image_1 = camera.getFrame(1).getGsImage().clone();
     Mat gs_image_2 = camera.getFrame(2).getGsImage().clone();
@@ -606,25 +617,25 @@ void testFlow(bool use_deep_flow){
 //    compression_params.push_back(cv::IMWRITE_PNG_COMPRESSION);
 //    compression_params.push_back(0);
 //    test_image = abs(gs_image_2-test_image);
-//    cv::imwrite(data_path + "Difference.png", test_image, compression_params);
+//    cv::imwrite(data_path / "Difference.png", test_image, compression_params);
 }
 
 
 // setup camera for synthetic images
-Camera setupCameraSynthetic(std::string data_prefix, bool show_messages) {
+Camera setupCameraSynthetic(const fs::path& data_prefix, bool show_messages) {
     // Frame 1
-    std::string poses_csv_1 = data_prefix + "1_rs_t.csv";
-    std::string orientation_csv_1 = data_prefix + "1_rs_r.csv";
-    std::string csv_unprojetion_x_1 = data_prefix + "1_rs_unproject_x.csv";
-    std::string csv_unprojetion_y_1 = data_prefix + "1_rs_unproject_y.csv";
-    std::string csv_unprojetion_z_1 = data_prefix + "1_rs_unproject_z.csv";
-    std::string csv_gs_unprojetion_x_1 = data_prefix + "1_initial_gs_unproject_x.csv";
-    std::string csv_gs_unprojetion_y_1 = data_prefix + "1_initial_gs_unproject_y.csv";
-    std::string csv_gs_unprojetion_z_1 = data_prefix + "1_initial_gs_unproject_z.csv";
+    const fs::path poses_csv_1 = data_prefix / "1_rs_t.csv";
+    const fs::path orientation_csv_1 = data_prefix / "1_rs_r.csv";
+    const fs::path csv_unprojetion_x_1 = data_prefix / "1_rs_unproject_x.csv";
+    const fs::path csv_unprojetion_y_1 = data_prefix / "1_rs_unproject_y.csv";
+    const fs::path csv_unprojetion_z_1 = data_prefix / "1_rs_unproject_z.csv";
+    const fs::path csv_gs_unprojetion_x_1 = data_prefix / "1_initial_gs_unproject_x.csv";
+    const fs::path csv_gs_unprojetion_y_1 = data_prefix / "1_initial_gs_unproject_y.csv";
+    const fs::path csv_gs_unprojetion_z_1 = data_prefix / "1_initial_gs_unproject_z.csv";
 
-    std::string path_rs_image_1 = data_prefix + "1_rs.png";
-    std::string path_gs_image_1 = data_prefix + "1_initial_gs.png";
-    std::string path_depth_image_1 = data_prefix + "1_initial_depth.png";
+    const fs::path path_rs_image_1 = data_prefix / "1_rs.png";
+    const fs::path path_gs_image_1 = data_prefix / "1_initial_gs.png";
+    const fs::path path_depth_image_1 = data_prefix / "1_initial_depth.png";
 
 
     Mat rs_image_1 = cv::imread(path_rs_image_1.c_str(), cv::IMREAD_COLOR);
@@ -633,23 +644,23 @@ Camera setupCameraSynthetic(std::string data_prefix, bool show_messages) {
     Mat depth_image_1 = depth_image_inv_1.clone();
 
     // Frame 2
-    std::string poses_csv_2 = data_prefix + "2_rs_t.csv";
-    std::string orientation_csv_2 = data_prefix + "2_rs_r.csv";
-    std::string csv_unprojetion_x_2 = data_prefix + "2_rs_unproject_x.csv";
-    std::string csv_unprojetion_y_2 = data_prefix + "2_rs_unproject_y.csv";
-    std::string csv_unprojetion_z_2 = data_prefix + "2_rs_unproject_z.csv";
-    std::string csv_gs_unprojetion_x_2 = data_prefix + "2_initial_gs_unproject_x.csv";
-    std::string csv_gs_unprojetion_y_2 = data_prefix + "2_initial_gs_unproject_y.csv";
-    std::string csv_gs_unprojetion_z_2 = data_prefix + "2_initial_gs_unproject_z.csv";
+    const fs::path poses_csv_2 = data_prefix / "2_rs_t.csv";
+    const fs::path orientation_csv_2 = data_prefix / "2_rs_r.csv";
+    const fs::path csv_unprojetion_x_2 = data_prefix / "2_rs_unproject_x.csv";
+    const fs::path csv_unprojetion_y_2 = data_prefix / "2_rs_unproject_y.csv";
+    const fs::path csv_unprojetion_z_2 = data_prefix / "2_rs_unproject_z.csv";
+    const fs::path csv_gs_unprojetion_x_2 = data_prefix / "2_initial_gs_unproject_x.csv";
+    const fs::path csv_gs_unprojetion_y_2 = data_prefix / "2_initial_gs_unproject_y.csv";
+    const fs::path csv_gs_unprojetion_z_2 = data_prefix / "2_initial_gs_unproject_z.csv";
 
-    std::string path_rs_image_2= data_prefix + "2_rs.png";
-    std::string path_gs_image_2= data_prefix + "2_initial_gs.png";
-    std::string path_depth_image_2= data_prefix + "2_initial_depth.png";
+    const fs::path path_rs_image_2= data_prefix / "2_rs.png";
+    const fs::path path_gs_image_2= data_prefix / "2_initial_gs.png";
+    const fs::path path_depth_image_2= data_prefix / "2_initial_depth.png";
 
 
-    Mat rs_image_2 = cv::imread(path_rs_image_2.c_str(), cv::IMREAD_COLOR);
-    Mat gs_image_2 = cv::imread(path_gs_image_2.c_str(), cv::IMREAD_COLOR);
-    Mat depth_image_inv_2 = cv::imread(path_depth_image_2.c_str(), cv::IMREAD_GRAYSCALE);
+    Mat rs_image_2 = cv::imread(path_rs_image_2, cv::IMREAD_COLOR);
+    Mat gs_image_2 = cv::imread(path_gs_image_2, cv::IMREAD_COLOR);
+    Mat depth_image_inv_2 = cv::imread(path_depth_image_2, cv::IMREAD_GRAYSCALE);
     Mat depth_image_2 = depth_image_inv_2.clone();
 
     Mat test_image = gs_image_2.clone();
@@ -661,7 +672,7 @@ Camera setupCameraSynthetic(std::string data_prefix, bool show_messages) {
     cv::cv2eigen(depth_image_2, depth_map_2);
 
     Camera camera;
-    camera.loadIntrinsicsFromFile(data_prefix + "A.csv", show_messages);
+    camera.loadIntrinsicsFromFile(data_prefix / "A.csv", show_messages);
     camera.addFrameSynthetic(rs_image_1, gs_image_1, depth_image_1, poses_csv_1, orientation_csv_1, csv_unprojetion_x_1,
                              csv_unprojetion_y_1, csv_unprojetion_z_1, csv_gs_unprojetion_x_1, csv_gs_unprojetion_y_1,
                              csv_gs_unprojetion_z_1);
@@ -673,13 +684,13 @@ Camera setupCameraSynthetic(std::string data_prefix, bool show_messages) {
 }
 
 // setup camera for real world images
-Camera setupCameraReal(std::string data_prefix, std::string intrinsic_selection) {
+Camera setupCameraReal(const fs::path& data_prefix, std::string_view intrinsic_selection) {
     // Frame 1
-    std::string path_rs_image_1 = data_prefix + "frame1.png";
+    fs::path path_rs_image_1 = data_prefix / "frame1.png";
     Mat rs_image_1 = cv::imread(path_rs_image_1.c_str(), cv::IMREAD_COLOR);
 
     // Frame 2
-    std::string path_rs_image_2= data_prefix + "frame2.png";
+    fs::path path_rs_image_2 = data_prefix / "frame2.png";
     Mat rs_image_2 = cv::imread(path_rs_image_2.c_str(), cv::IMREAD_COLOR);
 
     Camera camera;
